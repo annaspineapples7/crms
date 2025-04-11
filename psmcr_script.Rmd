@@ -1,0 +1,63 @@
+---
+title: "psmcr_script"
+output: html_document
+date: "2025-04-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## this is my SBATCH PSMCR script
+
+```{bash}
+#!/bin/bash
+#SBATCH --job-name=bobo.psmcr
+#SBATCH --output=psmcr.out
+#SBATCH --error=psmcr.err
+#SBATCH --time=0-06:00:00
+#SBATCH --mail-user=dormitzer.a@northeastern.edu
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mail-type=ALL
+#SBATCH --mem=40G
+#SBATCH --cpus-per-task=8
+
+# load R
+module load r
+
+# move to our working directory
+cd /home/dormitzer.a/crms/psmc
+
+# set paths to input/output data
+VCF_FILE="/courses/EEMB5538.202530/data/Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf.gz"
+
+REF_GENOME="/courses/EEMB5538.202530/data/Zmarina_668_v2.0.fa"
+
+OUTPUT_DNABIN="output_dnabin.rds"
+
+R_SCRIPT="run_vcf2dnabin.R"
+
+# write R script
+cat > $R_SCRIPT <<EOF
+library(psmcr)
+
+# convert vcf to fasta files
+dnabin_obj <- VCF2DNAbin("$VCF_FILE",
+					refgenome="$REF_GENOME",
+					individual=37)
+
+# save DNAbin object
+saveRDS(dnabin_obj, file="$OUTPUT_DNABIN")
+
+# run psmcr
+psmcr_result <- psmc(dnabin_obj, niters = 5, B = 30, mc.cores = 8)
+
+# save psmc model
+saveRDS(psmcr_result, file="psmcr.rds") 
+EOF
+
+# run the rscript
+Rscript $R_SCRIPT
+```
+
